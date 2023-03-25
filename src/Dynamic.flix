@@ -42,6 +42,64 @@ namespace Dynamic {
     pub def scan(): Dynamic[r, ef, a] = ???
 }
 
+
+// Functor instance for dynamic.
+instance IxFunctor[Dynamic[r]] {
+    pub def ixMap(
+        f: a -> b \ ef, 
+        dx: Dynamic[r, ef, a]
+    ): Dynamic[r, ef, b] with Sendable[a], Sendable[b], ToString[b] = match dx {
+        case Dynamic.Dynamic(Event.Event(ex), bx) => 
+            let fbx = bx |> mapBehavior(f);
+            let fex = Event.Event(r -> ex(r) |> mapReceiver(r, f));
+            Dynamic.Dynamic(fex, fbx)
+    }
+}
+
+instance IxApplicative[Dynamic[r]] {
+    pub def ixAp(
+        f: Dynamic[r, ef, a -> b \ ef], 
+        x: Dynamic[r, ef, a]
+    ): Dynamic[r, ef, b] with Sendable[a], Sendable[b] = match (f, x) {
+        case (
+            Dynamic.Dynamic(Event.Event(fe), Behavior.Behavior(fb)), 
+            Dynamic.Dynamic(Event.Event(xe), Behavior.Behavior(xb))
+        ) =>
+            let fxb = _ -> fb()(xb());
+            
+            // Whenever either fe or xe fire,
+            //  update fxe with the latest from fxb.
+            let fxe = Event.Event(r ->
+                let (tfx, rfx) = Channel.unbuffered(r);
+
+                let fr = fe(r);
+                let xr = xe(r);
+
+                spawn (3
+                    loop(_ -> 
+                        let fCurrent = Channel.recv(fr);
+                        let xCurrent = xb();
+
+                        Channel.send(fCurrent(xCurrent), tfx)
+                    )
+                ) @ r;
+
+                spawn (
+                    loop(_ -> 
+                        let xCurrent = Channel.recv(xr);
+                        let fCurrent = fb();
+
+                        Channel.send(fCurrent(xCurrent), tfx)
+                    )
+                ) @ r;
+
+                rfx
+            );
+
+            Dynamic.Dynamic(fxe, Behavior.Behavior(fxb))
+    }
+}
+
 def mapDynamic(f: a -> b \ ef, dy: Dynamic[r, ef, a]): Dynamic[r, ef, b] = match dy {
     case Dynamic.Dynamic(ev, bh) => Dynamic.Dynamic(mapEvent(f, ev), mapBehavior(f, bh))
 }

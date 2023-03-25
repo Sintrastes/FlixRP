@@ -14,3 +14,16 @@ def mapBehavior(
         f(x())   
     )
 }
+
+/*
+instance IxFunctor[Behavior[r]] {
+    pub def ixMap(
+        f: a -> b \ ef, 
+        bx: Behavior[r, ef, a]
+    ): Behavior[r, ef, b] with Sendable[a], Sendable[b] = match bx {
+        case Behavior.Behavior(x) => Behavior.Behavior(_ ->
+            f(x())   
+        )
+    }
+}
+*/
