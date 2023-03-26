@@ -48,7 +48,7 @@ instance IxFunctor[Dynamic[r]] {
     pub def ixMap(
         f: a -> b \ ef, 
         dx: Dynamic[r, ef, a]
-    ): Dynamic[r, ef, b] with Sendable[a], Sendable[b], ToString[b] = match dx {
+    ): Dynamic[r, ef, b] with Sendable[a], Sendable[b] = match dx {
         case Dynamic.Dynamic(Event.Event(ex), bx) => 
             let fbx = bx |> mapBehavior(f);
             let fex = Event.Event(r -> ex(r) |> mapReceiver(r, f));
@@ -75,7 +75,7 @@ instance IxApplicative[Dynamic[r]] {
                 let fr = fe(r);
                 let xr = xe(r);
 
-                spawn (3
+                spawn (
                     loop(_ -> 
                         let fCurrent = Channel.recv(fr);
                         let xCurrent = xb();
