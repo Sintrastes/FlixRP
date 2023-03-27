@@ -17,6 +17,17 @@ namespace Dynamic {
         (d, tx)
     }
 
+    pub def onUpdate(rh: Region[r], action: a -> Unit \ {ef, Impure}, dy: Dynamic[r, ef, a]): Unit \ {ef, Impure} = {
+        let reader = dynReader(rh, dy);
+
+        spawn (
+            loop(_ ->
+                let dynValue = Channel.recv(reader);
+                action(dynValue)
+            )
+        ) @ rh
+    }
+
     /** 
       * Create a Dynamic that emits the non-empty list of values, pausing for a specified duration
       *  in-between. 
